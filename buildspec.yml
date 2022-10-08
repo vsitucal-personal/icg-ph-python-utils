@@ -1,0 +1,36 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      #  USED FOR SUBMODULES
+      - echo "Nothing to do"
+
+  pre_build:
+    commands:
+      - aws s3 sync ./src/ s3://$BUILD_OUTPUT_BUCKET/$SERVICE/$ENVIRONMENT/
+      - |
+        if [ ! -d "./dist/" ]; then
+          mkdir ./dist/
+        fi
+      - |
+        if [ ! -d "./dist/icgphutils/" ]; then
+          mkdir ./dist/icgphutils/
+        fi
+      - |
+        if [ ! -d "./dist/icgphutils/python/" ]; then
+          mkdir ./dist/icgphutils/python/
+        fi
+      - cp -R ./src/icgphutils/icgphutils ./dist/icgphutils/python/
+
+  build:
+    commands:
+      - aws cloudformation package --template-file template.yml --s3-bucket $BUILD_OUTPUT_BUCKET --s3-prefix $SERVICE --output-template-file app-output_sam.yaml
+
+  post_build:
+    commands:
+      - echo "build completed on `date`"
+
+artifacts:
+  files:
+    - app-output_sam.yaml
+  discard-paths: yes

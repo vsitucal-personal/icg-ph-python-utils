@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: 'SAM template for Serverless framework service: '
+
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues:
+      - Prod
+      - Release
+      - Stage
+      - Test
+      - Dev
+    Default: Dev
+    Description: Stage that can be added to resource names
+  ProjectName:
+    Default: icgph
+    Type: String
+    Description: Name of the project that these functions are for
+  ServiceName:
+    Default: icgph-utils
+    Type: String
+    Description: service-name
+
+Mappings:
+  Environments:
+    Dev:
+      Name: dev
+    Test:
+      Name: test
+    Stage:
+      Name: stage
+    Prod:
+      Name: prod
+
+Conditions:
+  DevEnvironment: !Equals [!Ref Stage, Prod]
+
+Globals:
+  Function:
+    MemorySize: 512
+    Timeout: 29
+    Runtime: python3.9
+    Environment:
+      Variables:
+        STAGE: !Ref Stage
+        PROJECT_NAME: !Ref ProjectName
+        REGION: !Ref AWS::Region
+
+Resources:
+  UtilsDepLayer:
+    Type: AWS::Serverless::LayerVersion
+    RetentionPolicy: Retain
+    Properties:
+      LayerName: !Sub ${ProjectName}-${Stage}-${ServiceName}-icgphutils
+      Description: Application dependencies
+      RetentionPolicy: Retain
+      ContentUri: ./dist/icgphutils
+      CompatibleRuntimes:
+        - python3.7
+        - python3.8
+        - python3.9
+
+  icgphutilsName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "${Stage}-icgphutils-name"
+      Description: !Sub "${Stage} icgphutils"
+      Type: String
+      Value: !Ref UtilsDepLayer
